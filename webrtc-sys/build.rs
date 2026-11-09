@@ -169,6 +169,25 @@ fn main() {
                 //.flag("/wd4819")
                 //.flag("/wd4068")
                 .flag("/EHsc");
+
+            // NVENC needs only the NVIDIA driver at runtime. cuda_shim stands in for the
+            // CUDA toolkit's cuda.h and loads nvcuda.dll on first use, so the build needs
+            // no toolkit and the binary still starts on machines without NVIDIA drivers.
+            if target_arch == "x86_64" {
+                builder
+                    .include("src/nvidia/cuda_shim")
+                    .include("src/nvidia/NvCodec/include")
+                    .include("src/nvidia/NvCodec/NvCodec")
+                    .file("src/nvidia/cuda_shim/cuda_loader.cpp")
+                    .file("src/nvidia/NvCodec/NvCodec/NvEncoder/NvEncoder.cpp")
+                    .file("src/nvidia/NvCodec/NvCodec/NvEncoder/NvEncoderCuda.cpp")
+                    .file("src/nvidia/h264_encoder_impl.cpp")
+                    .file("src/nvidia/h265_encoder_impl.cpp")
+                    .file("src/nvidia/av1_encoder_impl.cpp")
+                    .file("src/nvidia/nvidia_encoder_factory.cpp")
+                    .file("src/nvidia/cuda_context.cpp")
+                    .define("USE_NVIDIA_VIDEO_ENCODER", "1");
+            }
         }
         "linux" => {
             println!("cargo:rustc-link-lib=dylib=rt");
@@ -302,7 +321,8 @@ fn main() {
                         .file("src/nvidia/nvidia_encoder_factory.cpp")
                         .file("src/nvidia/cuda_context.cpp")
                         .flag("-Wno-deprecated-declarations")
-                        .flag("-DUSE_NVIDIA_VIDEO_CODEC=1");
+                        .flag("-DUSE_NVIDIA_VIDEO_CODEC=1")
+                        .flag("-DUSE_NVIDIA_VIDEO_ENCODER=1");
 
                     add_lazy_load_so(
                         &mut builder,
@@ -394,6 +414,10 @@ fn main() {
         _ => {
             panic!("Unsupported target, {}", target_os);
         }
+    }
+
+    if env::var_os("CARGO_FEATURE_NO_SOFTWARE_AV1_ENCODER").is_some() {
+        builder.define("LK_NO_SOFTWARE_AV1_ENCODER", None);
     }
 
     // TODO(theomonnom) Only add this define when building tests

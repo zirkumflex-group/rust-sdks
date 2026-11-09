@@ -54,7 +54,7 @@
 #include "livekit/android.h"
 #endif
 
-#if defined(USE_NVIDIA_VIDEO_CODEC)
+#if defined(USE_NVIDIA_VIDEO_ENCODER)
 #include "nvidia/nvidia_encoder_factory.h"
 #endif
 
@@ -239,7 +239,7 @@ void AddJetsonFactory(
 void AddNvencFactory(
     std::vector<VideoEncoderBackendFactory>& factories,
     bool preferred) {
-#if defined(USE_NVIDIA_VIDEO_CODEC)
+#if defined(USE_NVIDIA_VIDEO_ENCODER)
   if (webrtc::NvidiaVideoEncoderFactory::IsSupported()) {
     AddBackendFactory(
         factories,
@@ -297,7 +297,9 @@ using Factory = webrtc::VideoEncoderFactoryTemplate<
 #if defined(WEBRTC_USE_H264)
     webrtc::OpenH264EncoderTemplateAdapter,
 #endif
-#if defined(RTC_USE_LIBAOM_AV1_ENCODER)
+// LK_NO_SOFTWARE_AV1_ENCODER (the `no-software-av1-encoder` feature) leaves
+// libaom out, so AV1 is offered only when a hardware encoder provides it.
+#if defined(RTC_USE_LIBAOM_AV1_ENCODER) && !defined(LK_NO_SOFTWARE_AV1_ENCODER)
     webrtc::LibaomAv1EncoderTemplateAdapter,
 #endif
     webrtc::LibvpxVp9EncoderTemplateAdapter>;
@@ -328,7 +330,7 @@ rust::Vec<VideoEncoderBackend> video_encoder_backend_list() {
   }
 #endif
 
-#if defined(USE_NVIDIA_VIDEO_CODEC)
+#if defined(USE_NVIDIA_VIDEO_ENCODER)
   if (webrtc::NvidiaVideoEncoderFactory::IsSupported()) {
     backends.push_back(VideoEncoderBackend::Nvenc);
     has_hardware_backend = true;
