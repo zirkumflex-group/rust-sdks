@@ -75,9 +75,12 @@ NvEncoder::NvEncoder(NV_ENC_DEVICE_TYPE eDeviceType,
 void NvEncoder::LoadNvEncApi() {
 #if defined(_WIN32)
 #if defined(_WIN64)
-  HMODULE hModule = LoadLibrary(TEXT("nvEncodeAPI64.dll"));
+  // System32 only: no current directory or PATH lookup (DLL planting).
+  HMODULE hModule = LoadLibraryEx(TEXT("nvEncodeAPI64.dll"), NULL,
+                                  LOAD_LIBRARY_SEARCH_SYSTEM32);
 #else
-  HMODULE hModule = LoadLibrary(TEXT("nvEncodeAPI.dll"));
+  HMODULE hModule = LoadLibraryEx(TEXT("nvEncodeAPI.dll"), NULL,
+                                  LOAD_LIBRARY_SEARCH_SYSTEM32);
 #endif
 #else
   void* hModule = dlopen("libnvidia-encode.so.1", RTLD_LAZY);
