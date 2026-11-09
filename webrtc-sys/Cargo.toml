@@ -9,6 +9,10 @@ repository.workspace = true
 
 [features]
 default = []
+# Leave libaom's software AV1 encoder out, so AV1 is negotiated only when a
+# hardware encoder (NVENC, VideoToolbox, ...) offers it. Software AV1 is too
+# slow for real-time screen sharing; VP8/VP9 remain available.
+no-software-av1-encoder = []
 
 # How CI checks this crate's features, read by
 # `.github/workflows/feature-combinations-curated.yml` via `cargo metadata`.
