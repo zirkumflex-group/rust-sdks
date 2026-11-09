@@ -19,7 +19,9 @@
 #include <time.h>
 
 #ifdef _WIN32
-#include <winsock.h>
+// winsock2.h, not winsock.h: WebRTC headers include winsock2.h, and the two
+// cannot be mixed in one translation unit.
+#include <winsock2.h>
 #include <windows.h>
 
 #pragma comment(lib, "ws2_32.lib")
