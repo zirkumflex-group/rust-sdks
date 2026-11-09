@@ -50,7 +50,9 @@ static bool load_cuda_modules() {
 
 #if defined(_WIN32)
   // dll delay load
-  HMODULE module = LoadLibrary(TEXT("nvcuda.dll"));
+  // System32 only, as in cuda_shim/cuda_loader.cpp.
+  HMODULE module =
+      LoadLibraryEx(TEXT("nvcuda.dll"), NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
   if (!module) {
     RTC_LOG(LS_INFO) << "nvcuda.dll is not found.";
     return false;
