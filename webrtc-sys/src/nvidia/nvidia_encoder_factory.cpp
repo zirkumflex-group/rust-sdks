@@ -29,7 +29,9 @@ namespace {
 #if defined(_WIN32)
 constexpr char kNvencLibrary[] = "nvEncodeAPI64.dll";
 void* OpenNvencLibrary() {
-  return LoadLibraryW(L"nvEncodeAPI64.dll");
+  // System32 only, as in cuda_loader.cpp: no current directory or PATH lookup.
+  return LoadLibraryExW(L"nvEncodeAPI64.dll", nullptr,
+                        LOAD_LIBRARY_SEARCH_SYSTEM32);
 }
 void* NvencSymbol(void* module, const char* name) {
   return reinterpret_cast<void*>(

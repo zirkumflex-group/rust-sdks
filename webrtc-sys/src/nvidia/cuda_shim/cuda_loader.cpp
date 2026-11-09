@@ -47,11 +47,14 @@ const CudaApi& Api() {
   static CudaApi api;
   static std::once_flag once;
   std::call_once(once, [] {
-    HMODULE module = LoadLibraryW(L"nvcuda.dll");
+    // System32 only: the NVIDIA driver installs it there, and searching the
+    // current directory or PATH would load a planted DLL on machines without it.
+    HMODULE module =
+        LoadLibraryExW(L"nvcuda.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (!module) {
       return;
     }
-    // The _v2 names are the 64-bit entry points real cuda.h maps these to.
+    // The _v2 names are the current-ABI entry points real cuda.h maps these to.
     bool ok = Resolve(module, "cuInit", api.init) &&
               Resolve(module, "cuDriverGetVersion", api.driver_get_version) &&
               Resolve(module, "cuGetErrorName", api.get_error_name) &&
