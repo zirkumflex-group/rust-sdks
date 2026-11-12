@@ -141,7 +141,7 @@ bool SupportsAv1Encoding(NV_ENCODE_API_FUNCTION_LIST& fnList,
                          void* hEncoder) {
   return SupportsEncodeGuid(fnList, hEncoder, NV_ENC_CODEC_AV1_GUID) &&
          SupportsInputFormat(fnList, hEncoder, NV_ENC_CODEC_AV1_GUID,
-                             NV_ENC_BUFFER_FORMAT_IYUV) &&
+                             NV_ENC_BUFFER_FORMAT_NV12) &&
          SupportsPositiveDimensionCaps(fnList, hEncoder,
                                        NV_ENC_CODEC_AV1_GUID);
 }
@@ -333,9 +333,11 @@ std::unique_ptr<VideoEncoder> NvidiaVideoEncoderFactory::Create(
 
       if (format.name == "H264") {
         RTC_LOG(LS_INFO) << "Using NVIDIA HW encoder (NVENC) for H264";
+        // NV12 input: a capturer that already has NV12 (GPU capture) is encoded without
+        // a conversion on the CPU. I420 frames have their chroma interleaved on upload.
         return std::make_unique<NvidiaH264EncoderImpl>(
             env, cu_context_->GetContext(), CU_MEMORYTYPE_DEVICE,
-            NV_ENC_BUFFER_FORMAT_IYUV, format);
+            NV_ENC_BUFFER_FORMAT_NV12, format);
       }
 
       if (format.name == "H265" || format.name == "HEVC") {
@@ -349,7 +351,7 @@ std::unique_ptr<VideoEncoder> NvidiaVideoEncoderFactory::Create(
         RTC_LOG(LS_INFO) << "Using NVIDIA HW encoder (NVENC) for AV1";
         return std::make_unique<NvidiaAV1EncoderImpl>(
             env, cu_context_->GetContext(), CU_MEMORYTYPE_DEVICE,
-            NV_ENC_BUFFER_FORMAT_IYUV, format);
+            NV_ENC_BUFFER_FORMAT_NV12, format);
       }
     }
   }

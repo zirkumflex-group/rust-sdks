@@ -285,16 +285,14 @@ int32_t NvidiaH264EncoderImpl::Encode(
     return WEBRTC_VIDEO_CODEC_UNINITIALIZED;
   }
 
-  webrtc::scoped_refptr<I420BufferInterface> frame_buffer =
-      input_frame.video_frame_buffer()->ToI420();
+  // Taken as it comes: an NV12 buffer is uploaded without a conversion on the CPU, and
+  // anything else is converted where it is uploaded (see CopyFrameBufferToDeviceFrame).
+  webrtc::scoped_refptr<VideoFrameBuffer> frame_buffer =
+      input_frame.video_frame_buffer();
   if (!frame_buffer) {
-    RTC_LOG(LS_ERROR) << "Failed to convert "
-                      << VideoFrameBufferTypeToString(
-                             input_frame.video_frame_buffer()->type())
-                      << " image to I420. Can't encode frame.";
+    RTC_LOG(LS_ERROR) << "Frame without a buffer. Can't encode frame.";
     return WEBRTC_VIDEO_CODEC_ENCODER_FAILURE;
   }
-  RTC_CHECK(frame_buffer->type() == VideoFrameBuffer::Type::kI420);
 
   bool is_keyframe_needed = false;
   if (configuration_.key_frame_request && configuration_.sending) {
@@ -326,9 +324,13 @@ int32_t NvidiaH264EncoderImpl::Encode(
   try {
     const NvEncInputFrame* nv_enc_input_frame = encoder_->GetNextInputFrame();
 
-    if (cu_memory_type_ == CU_MEMORYTYPE_DEVICE) {
-      CopyI420BufferToDeviceFrame(cu_context_, *frame_buffer,
-                                  *nv_enc_input_frame);
+    if (cu_memory_type_ == CU_MEMORYTYPE_DEVICE &&
+        !CopyFrameBufferToDeviceFrame(cu_context_, *frame_buffer,
+                                      *nv_enc_input_frame, nv12_scratch_)) {
+      RTC_LOG(LS_ERROR) << "Failed to read a "
+                        << VideoFrameBufferTypeToString(frame_buffer->type())
+                        << " image. Can't encode frame.";
+      return WEBRTC_VIDEO_CODEC_ENCODER_FAILURE;
     }
 
     NV_ENC_PIC_PARAMS pic_params = NV_ENC_PIC_PARAMS();
@@ -414,7 +416,9 @@ VideoEncoder::EncoderInfo NvidiaH264EncoderImpl::GetEncoderInfo() const {
   info.scaling_settings = VideoEncoder::ScalingSettings::kOff;
   info.is_hardware_accelerated = true;
   info.supports_simulcast = false;
-  info.preferred_pixel_formats = {VideoFrameBuffer::Type::kI420};
+  // NV12 is what the encoder is fed (see the factory), so a capturer that has it sends it.
+  info.preferred_pixel_formats = {VideoFrameBuffer::Type::kNV12,
+                                  VideoFrameBuffer::Type::kI420};
   return info;
 }
 

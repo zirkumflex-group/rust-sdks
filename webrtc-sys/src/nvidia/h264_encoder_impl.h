@@ -75,6 +75,8 @@ class NvidiaH264EncoderImpl : public VideoEncoder {
   CUmemorytype cu_memory_type_;
   CUarray cu_scaled_array_;
   NV_ENC_BUFFER_FORMAT nv_format_;
+  // Interleaved chroma of an I420 frame on its way into an NV12 input frame.
+  std::vector<uint8_t> nv12_scratch_;
   NV_ENC_INITIALIZE_PARAMS nv_initialize_params_;
   NV_ENC_CONFIG nv_encode_config_;
   GUID nv_profile_guid_;
